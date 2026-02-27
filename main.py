@@ -15,7 +15,7 @@ class Config:
     notes_folder:str
     drive_targeted_folder:str 
 
-#simple method that load the variables saved into the .env files into the dataclass
+#simple method that loads the variables saved into the .env files into the dataclass
 def load_env_config():
     load_dotenv()
     config = Config(
@@ -27,7 +27,7 @@ def load_env_config():
     
     return config
 
-#method that authenticate and configures the drive apis 
+#method that authenticates and configures the drive apis 
 def get_drive_service(config):
     scopes = ['https://www.googleapis.com/auth/drive']
     creds = None
@@ -80,8 +80,8 @@ def get_remote_files(service, folder_id):
 def calculate_md5(file_path):
     hash_md5 = hashlib.md5()
 
-    with open(file_path) as file:
-        for chunk in file:
+    with open(file_path, "rb") as file:
+        for chunk in iter(lambda: file.read(4096), b""):
             hash_md5.update(chunk)
 
     return hash_md5.hexdigest()
@@ -97,15 +97,18 @@ def upload_on_drive(service, local_path, folder_id,):
     except Exception as error:
         print(f'errore: {error}')
 
-def update_on_drive(service, local_path, file_id):
+def update_on_drive(service, local_path, remote_id):
     try:
         file_name = os.path.basename(local_path)
         pdf = MediaFileUpload(local_path, mimetype='application/pdf')
 
-        service.files().update(file_id=file_id, media_body=pdf).execute()
+        service.files().update(fileId=remote_id, media_body=pdf).execute()
         print(f"il file {file_name} e' stato aggiornato con successo")
     except Exception as error:
         print(f'errore: {error}')
+
+
+
 def main():
     config = load_env_config()
     drive_settings = get_drive_service(config)
