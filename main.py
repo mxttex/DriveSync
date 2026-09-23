@@ -14,6 +14,7 @@ class Config:
     token_path:str
     notes_folder:str
     drive_targeted_folder:str 
+    is_linux:bool
 
 #simple method that loads the variables saved into the .env files into the dataclass
 def load_env_config():
@@ -22,7 +23,8 @@ def load_env_config():
         credentials_path = os.getenv("CREDENTIALS"),
         token_path = os.getenv("TOKEN_PATH"),
         notes_folder = os.getenv("NOTES_FOLDER"),
-        drive_targeted_folder = os.getenv("FOLDER_ID")
+        drive_targeted_folder = os.getenv("FOLDER_ID"),
+        is_linux = os.getenv("IS_LINUX")
     )
     
     return config
@@ -47,13 +49,13 @@ def get_drive_service(config):
             token_file.write(creds.to_json())
     return build('drive', 'v3', credentials=creds)
 
-def list_local_pdfs(root_path):
+def list_local_pdfs(root_path, kind_of_slash):
     pdf_list = []
 
     for actual_dir, other_dirs, file_list in os.walk(root_path):
         for file_name in file_list:
             if file_name.endswith(".pdf"):
-                abs_path = actual_dir + "\\" + file_name
+                abs_path = actual_dir + kind_of_slash + file_name
                 pdf_list.append(abs_path)
 
     return pdf_list 
@@ -111,8 +113,9 @@ def update_on_drive(service, local_path, remote_id):
 
 def main():
     config = load_env_config()
+    kind_of_slash = "//" if config.is_linux == "TRUE" else "\\"
     drive_settings = get_drive_service(config)
-    pdfs_paths = list_local_pdfs(config.notes_folder)
+    pdfs_paths = list_local_pdfs(config.notes_folder, kind_of_slash=kind_of_slash)
     files_already_on_drive = get_remote_files(drive_settings, config.drive_targeted_folder)
    
     for file in pdfs_paths:
