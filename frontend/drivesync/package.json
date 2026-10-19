@@ -1,8 +1,12 @@
 {
   "name": "drivesync",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.3",
   "type": "module",
+  "description": "DriveSync Desktop Client",
+  "author": "Matteo Faccetta <matteofaccetta@gmail.com>",
+  "homepage": "https://github.com/drivesync",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && electron-builder",
@@ -13,13 +17,39 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.6",
-    "vue-tsc": "^2.0.26",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",
-    "vite-plugin-electron-renderer": "^0.14.5"
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vue-tsc": "^2.0.26"
   },
-  "main": "dist-electron/main.js"
+  "build": {
+    "appId": "com.drivesync.app",
+    "productName": "DriveSync",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../../daemon",
+        "to": "daemon",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/*",
+          "!**/*.pyc"
+        ]
+      }
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "maintainer": "Matteo Faccetta <matteofaccetta@.com>"
+    }
+  }
 }

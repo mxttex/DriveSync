@@ -1,5 +1,6 @@
 import os
 import hashlib
+from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
@@ -13,11 +14,19 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-load_dotenv()
+DOCS_DIR = Path.home() / "Documents" / "DriveSyncDocs"
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env_docs_path = DOCS_DIR / ".env"
+env_local_path = BASE_DIR / ".env"
+
+if env_docs_path.exists():
+    load_dotenv(dotenv_path=env_docs_path)
+else:
+    load_dotenv(dotenv_path=env_local_path)
 
 app = FastAPI(title="DriveSync API")
 
-# Abilita CORS per l'integrazione con Electron/Vue
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,11 +42,41 @@ class Config:
     notes_folder: str
     drive_targeted_folder: str 
 
+def resolve_file_path(env_val: str, filename: str) -> str:
+    """
+    Risolve il percorso assoluto cercando in ordine:
+    1. Percorso assoluto fornito direttamente in .env
+    2. Cartella ~/Documents/DriveSyncDocs/
+    3. Cartella radice del daemon
+    """
+    if env_val and os.path.isabs(env_val) and os.path.exists(env_val):
+        return env_val
+    
+    docs_candidate = DOCS_DIR / (env_val or filename)
+    if docs_candidate.exists():
+        return str(docs_candidate)
+        
+    base_candidate = BASE_DIR / (env_val or filename)
+    if base_candidate.exists():
+        return str(base_candidate)
+        
+    return str(docs_candidate)
+
 def load_env_config() -> Config:
+    credentials_val = os.getenv("CREDENTIALS", "credentials.json")
+    token_val = os.getenv("TOKEN_PATH", "token.json")
+    
+    resolved_credentials = resolve_file_path(credentials_val, "credentials.json")
+    resolved_token = resolve_file_path(token_val, "token.json")
+    
+    notes_folder = os.getenv("NOTES_FOLDER", "")
+    if not notes_folder or not os.path.exists(notes_folder):
+        notes_folder = str(DOCS_DIR)
+
     return Config(
-        credentials_path=os.getenv("CREDENTIALS", "credentials.json"),
-        token_path=os.getenv("TOKEN_PATH", "token.json"),
-        notes_folder=os.getenv("NOTES_FOLDER", ""),
+        credentials_path=resolved_credentials,
+        token_path=resolved_token,
+        notes_folder=notes_folder,
         drive_targeted_folder=os.getenv("FOLDER_ID", "")
     )
 
@@ -52,9 +91,14 @@ def get_drive_service(config: Config):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            if not os.path.exists(config.credentials_path):
+                raise FileNotFoundError(
+                    f"Impossibile trovare 'credentials.json'. Cercato in: '{config.credentials_path}' e '{BASE_DIR / 'credentials.json'}'"
+                )
             flow = InstalledAppFlow.from_client_secrets_file(config.credentials_path, scopes)
             creds = flow.run_local_server(port=0)
 
+        os.makedirs(os.path.dirname(config.token_path), exist_ok=True)
         with open(config.token_path, 'w') as token_file:
             token_file.write(creds.to_json())
             
@@ -126,13 +170,15 @@ def get_local_files():
 
 @app.get("/getRemoteFiles")
 def get_remote_files_endpoint():
-    config = load_env_config()
-    service = get_drive_service(config)
-    remote_map = fetch_remote_files(service, config.drive_targeted_folder)
-    
-    # Formattiamo come lista per il frontend
-    files = [{"name": k, "id": v["id"], "md5": v["md5"]} for k, v in remote_map.items()]
-    return {"status": "success", "files": files}
+    try:
+        config = load_env_config()
+        service = get_drive_service(config)
+        remote_map = fetch_remote_files(service, config.drive_targeted_folder)
+        
+        files = [{"name": k, "id": v["id"], "md5": v["md5"]} for k, v in remote_map.items()]
+        return {"status": "success", "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/sync")
 def sync_files():
