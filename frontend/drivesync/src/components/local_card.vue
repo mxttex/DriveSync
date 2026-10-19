@@ -7,12 +7,7 @@
 </template>
 
 <script setup lang="ts">
-interface LocalFile {
-  id?: string
-  name?: string
-  size?: string
-}
-
+import { LocalFile } from '../types';
 const props = withDefaults(defineProps<{
   file?: LocalFile
 }>(), {

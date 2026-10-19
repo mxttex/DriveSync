@@ -103,8 +103,7 @@
 import { onMounted, ref } from 'vue'
 import DriveCard from '../components/drive_card.vue'
 import LocalCard from '../components/local_card.vue'
-
-
+import { DriveFile, LocalFile } from '../types.ts'
 const isDaemonReady = ref(false)
 const isSyncing = ref(false)
 const localFiles = ref<any[]>([])
@@ -182,11 +181,38 @@ onMounted(async () => {
             loadFiles('DRIVE'),
             loadFiles('LOCAL')
         ])
-        console.log(localFiles)
+        checkDifferences()
     } else {
         console.error('Daemon non disponibile su http://127.0.0.1:8000')
     }
 })
+
+const checkDifferences = () => { 
+    const remoteMap = new Map<string, DriveFile>(
+            remoteFiles.value.map((remote => [remote.name, remote])
+    ))
+
+    for(const file of localFiles.value){
+        if(!file.name) continue
+
+        const remote = remoteMap.get(file.name)
+
+        console.log(file.md5)
+        console.log(remote!.md5)
+
+        if(!remote){
+            syncLogs.value.push(`[NUOVO] ${file.name} non è presente in remoto`)
+        }
+        else if(file.md5 !== remote.md5){
+            syncLogs.value.push(`[DA AGGIORNARE] ${file.name} non è aggiornato nella cartella remota`)
+        }
+        else{
+            syncLogs.value.push(`[OK] ${file.name} è già aggiornato`)
+        }
+
+    }
+
+}
 
 </script>
 
