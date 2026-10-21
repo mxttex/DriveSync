@@ -1,8 +1,8 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { ChildProcess, spawn } from 'node:child_process'
+import { ChildProcess, exec, spawn } from 'node:child_process'
 
 // const require = createRequire(import.meta.url)
 const __filename = fileURLToPath(import.meta.url)
@@ -102,4 +102,10 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   stopDaemon()
+})
+
+ipcMain.handle(('open-in-vscode'), async (_event, filePath: string) => {
+  exec(`code ${filePath}`, error => {
+    console.error('Errore durante l\'apertura di VsCode: ', error)
+  })
 })

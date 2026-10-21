@@ -3,6 +3,7 @@ interface LocalFile {
   name?: string
   size?: string
   md5?: string
+  path?: string
 }
 
 interface DriveFile {

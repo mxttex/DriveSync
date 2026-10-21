@@ -103,7 +103,7 @@
 import { onMounted, ref } from 'vue'
 import DriveCard from '../components/drive_card.vue'
 import LocalCard from '../components/local_card.vue'
-import { DriveFile, LocalFile } from '../types.ts'
+import { DriveFile } from '../types.ts'
 const isDaemonReady = ref(false)
 const isSyncing = ref(false)
 const localFiles = ref<any[]>([])
@@ -196,9 +196,6 @@ const checkDifferences = () => {
         if(!file.name) continue
 
         const remote = remoteMap.get(file.name)
-
-        console.log(file.md5)
-        console.log(remote!.md5)
 
         if(!remote){
             syncLogs.value.push(`[NUOVO] ${file.name} non è presente in remoto`)
