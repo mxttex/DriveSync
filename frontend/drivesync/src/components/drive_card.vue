@@ -1,9 +1,6 @@
 <script setup lang="ts">
-interface DriveFile {
-  id?: string
-  name?: string
-  md5?: string
-}
+
+import { DriveFile } from '../types';
 
 const props = withDefaults(defineProps<{
   file?: DriveFile

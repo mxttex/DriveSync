@@ -112,9 +112,11 @@ def fetch_local_pdfs(root_path: str) -> List[Dict[str, Any]]:
                 if file_name.lower().endswith(".pdf"):
                     abs_path = os.path.join(actual_dir, file_name)
                     file_size = os.path.getsize(abs_path)
+                    md5_checksum = calculate_md5(abs_path)
                     pdf_list.append({
                         "name": file_name,
                         "path": abs_path,
+                        "md5" : md5_checksum,
                         "size": f"{round(file_size / (1024 * 1024), 2)} MB"
                     })
     return pdf_list
